@@ -1,41 +1,34 @@
-from flask import Flask, request, jsonify
-from datetime import datetime
-import requests
+import socket
+import threading
 
-app = Flask(__name__)
+# Configuration
+LISTENING_PORT = 8805
+DESTINATION_HOST = '127.0.0.1'  # Replace with the actual destination host
+DESTINATION_PORT = 5001  # Replace with the actual destination port
 
-NODE_2_URL = 'http://10.10.1.3:8805'  # Replace with actual Node 2 URL
+def handle_client(client_socket):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.connect((DESTINATION_HOST, DESTINATION_PORT))
 
-# Endpoint to act as a proxy for Node 2
-@app.route('/proxy/<path:url>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
-def proxy(url):
-    print(1);
-    data = request.json if request.method in ['POST', 'PUT', 'PATCH'] else None
-    method = request.method
-    timestamp = datetime.now().isoformat()
-    
-    # Log the incoming request
-    print(f"Middlebox received request at {timestamp}")
-    print(f"Method: {method}")
-    print(f"URL: {url}")
-    print(f"Headers: {headers}")
-    print(f"Data: {data}")
+        # Start a thread to receive data from the server and send it to the client
+        def forward_to_client():
+            while True:
+                data = server_socket.recv(4096)
+                if not data:
+                    break
+                client_socket.sendall(data)
+        threading.Thread(target=forward_to_server, daemon=True).start()
 
-    
-    # Forward the request to Node 2
-    response = requests.request(
-        method,
-        f'{NODE_2_URL}/{url}',
-        json=data,
-        headers={key: value for key, value in request.headers if key != 'Host'}
-    )
-    
-    # Log the response
-    response_timestamp = datetime.now().isoformat()
-    print(f"Middlebox received response from Node 2 at {response_timestamp}: {response.status_code}")
-    
-    # Forward the response back to Node 1
-    return (response.content, response.status_code, response.headers.items())
+def start_proxy():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as proxy_socket:
+        proxy_socket.bind(('10.10.1.1', LISTENING_PORT))
+        proxy_socket.listen(5)
+        print(f"Proxy server listening on 10.10.1.1:{LISTENING_PORT}")
+
+        while True:
+            client_socket, addr = proxy_socket.accept()
+            print(f"Accepted connection from {addr}")
+            threading.Thread(target=handle_client, args=(client_socket,), daemon=True).start()
 
 if __name__ == '__main__':
-    app.run(host='10.10.1.1',port=8805)
+    start_proxy()
