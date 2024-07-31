@@ -14,7 +14,7 @@ def proxy(url):
     timestamp = datetime.now().isoformat()
     
     # Log the incoming request
-    print(f"Middlebox received request for Node 2 at {timestamp}: {request.method} {url}")
+    print(f"Middlebox received request for Node 2 at {timestamp}: {request.method}")
     
     # Forward the request to Node 2
     response = requests.request(
