@@ -16,7 +16,20 @@ def handle_client(client_socket):
                 data = server_socket.recv(4096)
                 if not data:
                     break
+                print(f"Forwarding data from server to client: {data.decode('utf-8', 'ignore')}")
                 client_socket.sendall(data)
+
+        # Start a thread to receive data from the client and send it to the server
+        def forward_to_server():
+            while True:
+                data = client_socket.recv(4096)
+                if not data:
+                    break
+                print(f"Received data from client: {data.decode('utf-8', 'ignore')}")
+                server_socket.sendall(data)
+
+        # Start the threads
+        threading.Thread(target=forward_to_client, daemon=True).start()
         threading.Thread(target=forward_to_server, daemon=True).start()
 
 def start_proxy():
