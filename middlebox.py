@@ -9,12 +9,18 @@ NODE_2_URL = 'http://10.10.1.3:8805'  # Replace with actual Node 2 URL
 # Endpoint to act as a proxy for Node 2
 @app.route('/proxy/<path:url>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 def proxy(url):
+    print(1);
     data = request.json if request.method in ['POST', 'PUT', 'PATCH'] else None
     method = request.method
     timestamp = datetime.now().isoformat()
     
     # Log the incoming request
-    print(f"Middlebox received request for Node 2 at {timestamp}: {request.method}")
+    print(f"Middlebox received request at {timestamp}")
+    print(f"Method: {method}")
+    print(f"URL: {url}")
+    print(f"Headers: {headers}")
+    print(f"Data: {data}")
+
     
     # Forward the request to Node 2
     response = requests.request(
